@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    width: 2560px;
+    height: 1440px;
+    overflow: hidden;
+    background: #020818;
+    font-family: 'Arial Black', Arial, sans-serif;
+  }
+
+  canvas {
+    position: absolute;
+    top: 0; left: 0;
+    width: 2560px;
+    height: 1440px;
+  }
+
+  .content {
+    position: absolute;
+    top: 0; left: 0;
+    width: 2560px;
+    height: 1440px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+  }
+
+  .subtitle {
+    font-family: 'Arial', sans-serif;
+    font-size: 22px;
+    font-weight: 400;
+    letter-spacing: 10px;
+    text-transform: uppercase;
+    color: rgba(100, 200, 255, 0.7);
+    text-shadow:
+      0 0 10px rgba(0, 180, 255, 0.8),
+      0 0 30px rgba(0, 150, 255, 0.5);
+    margin-bottom: 22px;
+  }
+
+  .title-line1 {
+    font-family: 'Arial Black', Arial, sans-serif;
+    font-size: 105px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 6px;
+    line-height: 1;
+    color: #ffffff;
+    text-shadow:
+      0 0 20px rgba(0, 200, 255, 1),
+      0 0 40px rgba(0, 180, 255, 0.9),
+      0 0 80px rgba(0, 150, 255, 0.7),
+      0 0 150px rgba(0, 120, 255, 0.5),
+      0 0 300px rgba(80, 0, 255, 0.3);
+    margin-bottom: 8px;
+  }
+
+  .title-line2 {
+    font-family: 'Arial Black', Arial, sans-serif;
+    font-size: 105px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 6px;
+    line-height: 1;
+    color: #00d4ff;
+    text-shadow:
+      0 0 20px rgba(0, 212, 255, 1),
+      0 0 40px rgba(0, 200, 255, 0.9),
+      0 0 80px rgba(0, 180, 255, 0.8),
+      0 0 150px rgba(0, 150, 255, 0.6),
+      0 0 300px rgba(0, 100, 255, 0.4),
+      0 0 500px rgba(80, 0, 255, 0.2);
+  }
+
+  /* Центральное свечение за текстом */
+  .glow-core {
+    position: absolute;
+    width: 1800px;
+    height: 600px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: radial-gradient(ellipse at center,
+      rgba(0, 80, 180, 0.25) 0%,
+      rgba(0, 40, 120, 0.15) 40%,
+      transparent 70%
+    );
+    z-index: 5;
+  }
+</style>
+</head>
+<body>
+
+<canvas id="neural"></canvas>
+<div class="glow-core"></div>
+
+<div class="content">
+  <div class="subtitle">AI-агенты для малого бизнеса</div>
+  <div class="title-line1">БЮРО ЦИФРОВЫХ</div>
+  <div class="title-line2">СОТРУДНИКОВ</div>
+</div>
+
+<script>
+const canvas = document.getElementById('neural');
+const ctx = canvas.getContext('2d');
+canvas.width = 2560;
+canvas.height = 1440;
+
+const W = 2560, H = 1440;
+
+// Генерируем узлы нейросети
+const nodes = [];
+const nodeCount = 180;
+
+for (let i = 0; i < nodeCount; i++) {
+  nodes.push({
+    x: Math.random() * W,
+    y: Math.random() * H,
+    r: Math.random() * 4 + 1,
+    brightness: Math.random() * 0.6 + 0.4,
+    type: Math.random() > 0.85 ? 'hub' : 'node'
+  });
+}
+
+// Добавляем хабы — крупные узлы по краям
+const hubs = [
+  { x: 150, y: 200, r: 12 },
+  { x: 400, y: 100, r: 8 },
+  { x: 2400, y: 250, r: 12 },
+  { x: 2200, y: 80, r: 8 },
+  { x: 100, y: 1200, r: 10 },
+  { x: 500, y: 1350, r: 8 },
+  { x: 2450, y: 1100, r: 12 },
+  { x: 2100, y: 1380, r: 8 },
+  { x: 800, y: 150, r: 7 },
+  { x: 1800, y: 120, r: 7 },
+  { x: 700, y: 1300, r: 7 },
+  { x: 1900, y: 1360, r: 7 },
+];
+
+// Фон — глубокий тёмно-синий градиент
+const bgGrad = ctx.createRadialGradient(W/2, H/2, 0, W/2, H/2, W*0.7);
+bgGrad.addColorStop(0, '#030d25');
+bgGrad.addColorStop(0.5, '#020818');
+bgGrad.addColorStop(1, '#010510');
+ctx.fillStyle = bgGrad;
+ctx.fillRect(0, 0, W, H);
+
+// Тонкий горизонтальный блеск в центре (за текстом)
+const centerGlow = ctx.createRadialGradient(W/2, H/2, 0, W/2, H/2, 600);
+centerGlow.addColorStop(0, 'rgba(0, 60, 160, 0.18)');
+centerGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+ctx.fillStyle = centerGlow;
+ctx.fillRect(0, 0, W, H);
+
+// Рисуем связи между узлами
+function drawConnections(nodeList, maxDist, baseAlpha) {
+  for (let i = 0; i < nodeList.length; i++) {
+    for (let j = i + 1; j < nodeList.length; j++) {
+      const a = nodeList[i];
+      const b = nodeList[j];
+      const dx = a.x - b.x;
+      const dy = a.y - b.y;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      if (dist < maxDist) {
+        const alpha = baseAlpha * (1 - dist / maxDist);
+
+        // Тип линии: обычная или с градиентом
+        const grad = ctx.createLinearGradient(a.x, a.y, b.x, b.y);
+        grad.addColorStop(0, `rgba(0, 150, 255, ${alpha * (a.brightness || 0.5)})`);
+        grad.addColorStop(0.5, `rgba(80, 200, 255, ${alpha * 1.5})`);
+        grad.addColorStop(1, `rgba(0, 100, 220, ${alpha * (b.brightness || 0.5)})`);
+
+        ctx.beginPath();
+        ctx.moveTo(a.x, a.y);
+        ctx.lineTo(b.x, b.y);
+        ctx.strokeStyle = grad;
+        ctx.lineWidth = Math.random() > 0.8 ? 1.5 : 0.8;
+        ctx.stroke();
+      }
+    }
+  }
+}
+
+// Связи основных узлов
+drawConnections(nodes, 280, 0.35);
+
+// Связи хабов с ближайшими узлами
+for (const hub of hubs) {
+  for (const node of nodes) {
+    const dx = hub.x - node.x;
+    const dy = hub.y - node.y;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    if (dist < 400) {
+      const alpha = 0.4 * (1 - dist / 400);
+      ctx.beginPath();
+      ctx.moveTo(hub.x, hub.y);
+      ctx.lineTo(node.x, node.y);
+      ctx.strokeStyle = `rgba(0, 180, 255, ${alpha})`;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+  }
+}
+
+// Рисуем узлы
+function drawNode(x, y, r, brightness, isHub) {
+  // Внешнее свечение
+  const glow = ctx.createRadialGradient(x, y, 0, x, y, r * (isHub ? 8 : 5));
+  glow.addColorStop(0, `rgba(0, 200, 255, ${brightness * 0.6})`);
+  glow.addColorStop(0.3, `rgba(0, 150, 255, ${brightness * 0.2})`);
+  glow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+  ctx.fillStyle = glow;
+  ctx.beginPath();
+  ctx.arc(x, y, r * (isHub ? 8 : 5), 0, Math.PI * 2);
+  ctx.fill();
+
+  // Ядро узла
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.fillStyle = `rgba(180, 230, 255, ${brightness})`;
+  ctx.fill();
+
+  // Белый центр
+  ctx.beginPath();
+  ctx.arc(x, y, r * 0.4, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+  ctx.fill();
+}
+
+// Рисуем обычные узлы
+for (const node of nodes) {
+  drawNode(node.x, node.y, node.r, node.brightness, node.type === 'hub');
+}
+
+// Рисуем хабы
+for (const hub of hubs) {
+  drawNode(hub.x, hub.y, hub.r, 0.9, true);
+}
+
+// Потоки данных — светящиеся частицы на линиях
+ctx.save();
+for (let i = 0; i < 60; i++) {
+  const x = Math.random() * W;
+  const y = Math.random() * H;
+  const size = Math.random() * 2 + 0.5;
+  const alpha = Math.random() * 0.5 + 0.1;
+
+  const pGlow = ctx.createRadialGradient(x, y, 0, x, y, size * 4);
+  pGlow.addColorStop(0, `rgba(100, 220, 255, ${alpha})`);
+  pGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+  ctx.fillStyle = pGlow;
+  ctx.beginPath();
+  ctx.arc(x, y, size * 4, 0, Math.PI * 2);
+  ctx.fill();
+}
+ctx.restore();
+
+// Тонкая сетка из точек в углах (дополнительная текстура)
+ctx.globalAlpha = 0.08;
+for (let x = 0; x < W; x += 60) {
+  for (let y = 0; y < H; y += 60) {
+    ctx.beginPath();
+    ctx.arc(x, y, 1, 0, Math.PI * 2);
+    ctx.fillStyle = '#2060aa';
+    ctx.fill();
+  }
+}
+ctx.globalAlpha = 1;
+</script>
+</body>
+</html>
